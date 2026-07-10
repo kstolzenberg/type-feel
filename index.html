@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>type/feel — Google Sans Flex playground</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <h1>type/feel</h1>
+      <p class="subtitle">Google Sans Flex variable font playground</p>
+    </header>
+
+    <main class="layout">
+      <section class="stage-wrap">
+        <div id="stage" class="stage">
+          <div class="line" id="line-0" data-line="0"></div>
+          <div class="line" id="line-1" data-line="1"></div>
+          <div class="line" id="line-2" data-line="2"></div>
+        </div>
+        <div class="stage-controls">
+          <label>Background
+            <input type="color" id="bg-color" value="#0b0b0c" />
+          </label>
+          <label>Poster ratio
+            <select id="stage-ratio">
+              <option value="0.7071">A-series (√2:1)</option>
+              <option value="1">Square (1:1)</option>
+              <option value="0.8" selected>Portrait (4:5)</option>
+              <option value="1.5">Landscape (3:2)</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel" id="panel"></section>
+    </main>
+  </div>
+
+  <template id="line-panel-template">
+    <div class="line-editor" data-line="">
+      <h2><span class="line-index"></span></h2>
+
+      <label class="field">
+        Text
+        <input type="text" class="text-input" />
+      </label>
+
+      <label class="field">
+        Color
+        <input type="color" class="color-input" />
+      </label>
+
+      <div class="field slider-field">
+        <div class="field-label">
+          <span>Size</span>
+          <span class="value-out size-out"></span>
+        </div>
+        <input type="range" class="size-input" min="8" max="400" step="1" />
+      </div>
+
+      <div class="field slider-field">
+        <div class="field-label">
+          <span>Letter spacing</span>
+          <span class="value-out tracking-out"></span>
+        </div>
+        <input type="range" class="tracking-input" min="-0.1" max="0.5" step="0.005" />
+      </div>
+
+      <div class="field slider-field">
+        <div class="field-label">
+          <span>Line position</span>
+          <span class="value-out offset-out"></span>
+        </div>
+        <input type="range" class="offset-input" min="-200" max="200" step="1" />
+      </div>
+
+      <h3>Variable axes</h3>
+      <div class="axes"></div>
+    </div>
+  </template>
+
+  <template id="axis-template">
+    <div class="field slider-field axis-field">
+      <div class="field-label">
+        <span class="axis-name"></span>
+        <span class="value-out axis-out"></span>
+      </div>
+      <input type="range" class="axis-input" />
+    </div>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
