@@ -16,8 +16,8 @@ building a new type of mood journal. something more visual, more scannable for e
    - High intensity &rarr; low width, tight spacing, narrow
    - High pleasantness &rarr; heavier weight && larger size, bolder presence, more excitement   
 5. I chose the User Input: voice input for low friction expression, capture free rambling thoughts
-6. Claude recommended a Classifier: [NRC-VAD lexicon](https://arxiv.org/abs/2503.23547) for a emotion classifier, defer LLM service complexity
-7. Claude recommended Privacy-aware Storage: local storage, defer user accounts and cloud storage complexity
+6. Claude recommended a Classifier: [NRC-VAD lexicon](https://arxiv.org/abs/2503.23547) for an emotion classifier, to defer LLM service complexity
+7. Claude recommended privacy-aware storage: local storage, defer user accounts and cloud storage complexity
 8. I created an option for data portability, download, export
 9. Claude wrote the requirements, HTML and Javascript.
 10. I polished the UI, focused the information hierarchy, and directed an option for horizontal timeline visualization. 
