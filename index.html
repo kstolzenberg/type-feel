@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Shape of Today — A Visual Mood Journal</title>
+<meta name="description" content="A voice-first mood journal that renders each entry typographically, mapping valence and arousal to a variable font.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23D5001C'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght@6..144,25..151,1..1000&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FFFFFF;
+    --ink: #141414;
+    --signal: #D5001C;
+    --graphite: #6B6B66;
+    --hairline: #DAD9D3;
+    --hairline-strong: #B9B8B1;
+    --sans: "Google Sans Flex", system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button, input {
+    font-family: var(--sans);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+
+  /* ---------------- layout shell ---------------- */
+  .app {
+    display: flex;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 272px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--hairline);
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: width 200ms ease, padding 200ms ease, border-color 200ms ease;
+  }
+  .sidebar.collapsed {
+    width: 0;
+    padding: 32px 0;
+    border-right-color: transparent;
+  }
+  .sidebar-inner {
+    width: 224px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .brand-title {
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--graphite);
+    margin-top: 2px;
+  }
+
+  .rule { height: 1px; background: var(--hairline); margin: 24px 0; }
+  .rule--tight { margin: 16px 0; }
+
+  .section-label {
+    font-size: 12px;
+    color: var(--graphite);
+    margin-bottom: 10px;
+  }
+
+  .view-tabs { display: flex; gap: 16px; }
+  .tab-btn {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px;
+    background: none; border: none; cursor: pointer; padding: 0 0 4px 0;
+    color: var(--graphite);
+    border-bottom: 1.5px solid transparent;
+  }
+  .tab-btn.active { color: var(--ink); border-bottom-color: var(--signal); }
+  .tab-btn svg { width: 13px; height: 13px; }
+
+  .export-list { display: flex; flex-direction: column; gap: 8px; }
+  .export-btn {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px;
+    background: none; border: none; padding: 0; text-align: left;
+    color: var(--hairline-strong);
+    cursor: default;
+  }
+  .export-btn svg { width: 12px; height: 12px; }
+  .export-btn.enabled { color: var(--ink); cursor: pointer; }
+
+  .backup-note {
+    font-size: 11px;
+    color: var(--graphite);
+    margin-top: 2px;
+  }
+
+  .voice-note {
+    font-size: 11px;
+    color: var(--graphite);
+    margin-top: 12px;
+    line-height: 1.4;
+  }
+
+  .spacer { flex: 1; }
+
+  .nudge {
+    border: 1px solid var(--signal);
+    padding: 10px 12px;
+    margin-bottom: 16px;
+  }
+  .nudge-text { font-size: 12px; margin-bottom: 6px; }
+  .nudge-dismiss {
+    font-size: 11px; color: var(--graphite);
+    background: none; border: none; cursor: pointer; padding: 0;
+    text-decoration: underline;
+  }
+
+  .credit { font-size: 11px; color: var(--graphite); }
+  .credit a { color: var(--graphite); text-decoration: underline; }
+
+  /* ---------------- main ---------------- */
+  .main {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .sidebar-toggle {
+    position: absolute; top: 20px; left: 20px; z-index: 5;
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--hairline); background: var(--paper);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(20, 20, 20, 0.06);
+  }
+  .sidebar-toggle svg { width: 15px; height: 15px; color: var(--graphite); }
+
+  .history {
+    position: absolute; inset: 0;
+  }
+  .history.vertical { overflow-y: auto; padding: 72px 48px 148px; }
+  .history.timeline { overflow: hidden; padding: 0; }
+
+  .empty-state {
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; text-align: center;
+    color: var(--graphite);
+    height: 100%;
+  }
+  .history.vertical .empty-state { height: 420px; }
+  .empty-state svg { width: 16px; height: 16px; margin-bottom: 12px; }
+  .empty-state .title { font-size: 13px; color: var(--graphite); }
+  .empty-state .sub { font-size: 13px; margin-top: 6px; max-width: 260px; }
+
+  .entry-list { max-width: 640px; }
+  .entry { padding: 18px 0; }
+  .entry-meta { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+  .entry-date { font-size: 11px; color: var(--graphite); }
+  .entry-time { font-size: 12px; color: var(--graphite); }
+  .entry-text {
+    color: var(--ink);
+    line-height: 1.15;
+    transition: font-variation-settings 220ms ease, font-size 220ms ease;
+    word-wrap: break-word;
+  }
+
+  .timeline-scroll {
+    height: 100%;
+    display: flex; align-items: center;
+    overflow-x: auto;
+    padding: 0 40px;
+  }
+  .timeline-track { position: relative; height: 480px; flex-shrink: 0; }
+  .timeline-spine {
+    position: absolute; bottom: 70px; left: 0; right: 0; height: 1px;
+    background: var(--hairline-strong);
+  }
+  .timeline-item { position: absolute; bottom: 70px; transform: translateX(-50%); }
+  .timeline-stem {
+    position: absolute; left: 0; bottom: 0; width: 1px;
+    background: var(--hairline-strong); transform: translateX(-50%);
+  }
+  .timeline-dot {
+    position: absolute; left: 0; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--signal); transform: translateX(-50%);
+  }
+  .timeline-text {
+    position: absolute; left: 0; width: 200px; transform: translateX(-50%);
+    color: var(--ink);
+    transition: font-variation-settings 220ms ease, font-size 220ms ease;
+  }
+  .timeline-time {
+    position: absolute; left: 0; bottom: -28px; width: 200px; transform: translateX(-50%);
+    text-align: center; font-size: 11px; color: var(--graphite);
+  }
+
+  /* ---------------- capture bar ---------------- */
+  .capture-bar {
+    position: absolute; left: 50%; bottom: 16px; z-index: 10;
+    transform: translateX(-50%);
+    width: 40vw; min-width: 360px; max-width: 640px;
+    background: var(--paper);
+    padding: 18px 32px 18px 16px;
+    border-radius: 999px;
+    box-shadow: 0 -6px 24px rgba(20, 20, 20, 0.05);
+  }
+  .capture-row { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; }
+
+  .mic-btn {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+  .mic-btn svg { width: 17px; height: 17px; color: var(--ink); }
+  .mic-btn.recording { background: var(--signal); border-color: var(--signal); }
+  .mic-btn.recording svg { width: 15px; height: 15px; color: var(--paper); }
+  .mic-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .draft-field { flex: 1; min-width: 0; }
+  .draft-input {
+    width: 100%; border: none; border-bottom: 1px solid var(--hairline-strong);
+    background: transparent; font-size: 14px; padding: 6px 0; outline: none;
+    color: var(--ink);
+  }
+  .draft-status {
+    font-size: 12px; color: var(--graphite); margin-top: 6px; min-height: 15px;
+  }
+  .draft-status.error { color: var(--signal); }
+
+  .add-btn {
+    font-size: 12px; flex-shrink: 0;
+    background: none; border: none; padding: 0 0 6px 0;
+    color: var(--hairline-strong);
+    cursor: default;
+  }
+  .add-btn.enabled { color: var(--ink); cursor: pointer; }
+
+  @media (max-width: 768px) {
+    .sidebar { position: absolute; z-index: 20; height: 100%; background: var(--paper); }
+    .sidebar.collapsed { border-right: none; }
+    .capture-bar { width: 92vw; min-width: 0; }
+    .history.vertical { padding: 72px 20px 160px; }
+  }
+</style>
+</head>
+<body>
+<noscript>This journal needs JavaScript enabled to record and render entries.</noscript>
+
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-inner">
+      <div>
+        <div class="brand-title">The Shape of Today</div>
+        <div class="brand-sub">A Visual Mood Journal</div>
+      </div>
+
+      <div class="rule"></div>
+
+      <div>
+        <div class="section-label">View</div>
+        <div class="view-tabs">
+          <button class="tab-btn active" data-action="set-view" data-view="vertical" id="tabVertical" aria-pressed="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+            List
+          </button>
+          <button class="tab-btn" data-action="set-view" data-view="timeline" id="tabTimeline" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8L22 12L18 16"/><path d="M6 8L2 12L6 16"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+            Timeline
+          </button>
+        </div>
+      </div>
+
+      <div class="rule rule--tight"></div>
+
+      <div>
+        <div class="section-label">Export</div>
+        <div class="export-list">
+          <button class="export-btn" data-action="export-json" id="exportJsonBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+            Download JSON
+          </button>
+          <button class="export-btn" data-action="export-html" id="exportHtmlBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+            Download HTML
+          </button>
+          <div class="backup-note" id="backupNote">No backup yet</div>
+        </div>
+        <div class="voice-note" id="voiceNote" hidden>Voice input isn't supported in this browser — type your thought instead.</div>
+      </div>
+
+      <div class="spacer"></div>
+
+      <div class="nudge" id="nudge" hidden>
+        <div class="nudge-text">It's been a week — back up your journal?</div>
+        <button class="nudge-dismiss" data-action="dismiss-nudge">dismiss</button>
+      </div>
+
+      <div class="credit">
+        made by
+        <a href="https://github.com/kstolzenberg" target="_blank" rel="noopener noreferrer">karen</a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <button class="sidebar-toggle" id="sidebarToggle" data-action="toggle-sidebar" aria-label="Hide sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+
+    <div class="history vertical" id="history"></div>
+
+    <div class="capture-bar">
+      <div class="capture-row">
+        <button class="mic-btn" id="micBtn" data-action="toggle-recording" aria-label="Start recording">
+          <svg id="micIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="11" rx="3"/>
+            <path d="M5 10v1a7 7 0 0 0 14 0v-1"/>
+            <line x1="12" y1="18" x2="12" y2="22"/>
+            <line x1="8" y1="22" x2="16" y2="22"/>
+          </svg>
+        </button>
+
+        <div class="draft-field">
+          <input class="draft-input" id="draftInput" placeholder="Speak, or type a thought…" autocomplete="off">
+          <div class="draft-status" id="draftStatus" aria-live="polite"></div>
+        </div>
+
+        <button class="add-btn" id="addBtn" data-action="add-entry" disabled>Add</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------------------------------------------------------------
+     DESIGN TOKENS
+  --------------------------------------------------------------------- */
+  var COLOR = {
+    paper: "#FFFFFF",
+    ink: "#141414",
+    signal: "#D5001C",
+    graphite: "#6B6B66",
+    hairline: "#DAD9D3",
+    hairlineStrong: "#B9B8B1"
+  };
+  var SANS = '"Google Sans Flex", system-ui, sans-serif';
+  var SPINE_Y = 70;
+  var SLOT_WIDTH = 240;
+
+  /* ---------------------------------------------------------------------
+     NRC-VAD-STYLE LEXICON (demo subset — swap in the full ~20k word
+     published lexicon for broader coverage; interface stays the same).
+  --------------------------------------------------------------------- */
+  var VAD_LEXICON = {
+    happy: [0.9, 0.55], joy: [0.92, 0.65], joyful: [0.9, 0.6], thrilled: [0.88, 0.9],
+    excited: [0.82, 0.85], delighted: [0.87, 0.6], elated: [0.88, 0.75], ecstatic: [0.9, 0.92],
+    cheerful: [0.78, 0.55], glad: [0.72, 0.4], content: [0.68, -0.2], satisfied: [0.65, -0.15],
+    calm: [0.55, -0.7], relaxed: [0.6, -0.75], peaceful: [0.6, -0.7], serene: [0.62, -0.72],
+    grateful: [0.75, 0.2], hopeful: [0.68, 0.35], proud: [0.75, 0.45], loved: [0.85, 0.4],
+    love: [0.88, 0.5], inspired: [0.78, 0.6], motivated: [0.72, 0.6], confident: [0.72, 0.4],
+    optimistic: [0.7, 0.35], curious: [0.55, 0.4], amazed: [0.75, 0.7], amazing: [0.8, 0.55],
+    great: [0.75, 0.45], good: [0.6, 0.15], wonderful: [0.85, 0.5], awesome: [0.82, 0.6],
+    fine: [0.15, -0.15], okay: [0.1, -0.1], alright: [0.12, -0.1],
+    sad: [-0.75, -0.35], unhappy: [-0.7, -0.2], depressed: [-0.85, -0.5], miserable: [-0.85, -0.3],
+    gloomy: [-0.6, -0.4], melancholy: [-0.5, -0.35], lonely: [-0.65, -0.4], hopeless: [-0.85, -0.45],
+    disappointed: [-0.6, -0.1], heartbroken: [-0.85, 0.1],
+    angry: [-0.7, 0.75], furious: [-0.8, 0.9], mad: [-0.6, 0.65], enraged: [-0.85, 0.92],
+    frustrated: [-0.55, 0.55], irritated: [-0.5, 0.5], annoyed: [-0.45, 0.45],
+    anxious: [-0.5, 0.7], nervous: [-0.45, 0.65], worried: [-0.5, 0.55], stressed: [-0.6, 0.7],
+    overwhelmed: [-0.6, 0.75], scared: [-0.7, 0.75], afraid: [-0.65, 0.7], terrified: [-0.8, 0.9],
+    panicked: [-0.7, 0.9], restless: [-0.3, 0.6],
+    tired: [-0.3, -0.6], exhausted: [-0.45, -0.65], drained: [-0.5, -0.6], sluggish: [-0.3, -0.65],
+    bored: [-0.4, -0.5], dull: [-0.3, -0.55],
+    bad: [-0.6, 0.1], terrible: [-0.8, 0.3], awful: [-0.8, 0.35], horrible: [-0.82, 0.4],
+    embarrassed: [-0.45, 0.4], ashamed: [-0.6, 0.35], guilty: [-0.55, 0.3], jealous: [-0.4, 0.45],
+    nostalgic: [0.15, -0.1], surprised: [0.3, 0.7], confused: [-0.25, 0.35], numb: [-0.2, -0.6]
+  };
+  var NEGATIONS = new Set(["not", "no", "never", "dont", "don't", "isnt", "isn't", "wasnt", "wasn't", "cant", "can't", "wont", "won't"]);
+
+  function classifyEntry(text) {
+    var tokens = (text.toLowerCase().match(/[a-z']+/g) || []);
+    var scores = [];
+    tokens.forEach(function (word, i) {
+      var hit = VAD_LEXICON[word];
+      if (!hit) return;
+      var prev = tokens[i - 1];
+      var negated = prev && NEGATIONS.has(prev);
+      scores.push(negated ? [-hit[0], hit[1]] : hit);
+    });
+    if (scores.length === 0) return { valence: 0, arousal: 0 };
+    var valence = scores.reduce(function (s, v) { return s + v[0]; }, 0) / scores.length;
+    var arousal = scores.reduce(function (s, v) { return s + v[1]; }, 0) / scores.length;
+    return { valence: clamp(valence, -1, 1), arousal: clamp(arousal, -1, 1) };
+  }
+
+  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+  function norm(x) { return (clamp(x, -1, 1) + 1) / 2; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function fontVars(valence, arousal) {
+    var wght = Math.round(lerp(200, 900, norm(valence)));
+    var opsz = Math.round(lerp(24, 96, norm(valence)));
+    var wdth = Math.round(lerp(151, 25, norm(arousal)));
+    // opsz alone barely changes rendered size at a fixed font-size — pair it
+    // with an actual font-size ramp so positive/negative valence visibly reads
+    // as "bigger and bolder" vs. "smaller and quieter", as specced.
+    var fontSize = Math.round(lerp(16, 48, norm(valence)));
+    return {
+      fontVariationSettings: '"wght" ' + wght + ', "wdth" ' + wdth + ', "opsz" ' + opsz,
+      fontSize: fontSize,
+      letterSpacing: arousal > 0.15 ? "-0.01em" : "0em"
+    };
+  }
+
+  function formatDateShort(iso) {
+    var d = new Date(iso);
+    var mm = String(d.getMonth() + 1).padStart(2, "0");
+    var dd = String(d.getDate()).padStart(2, "0");
+    var yy = String(d.getFullYear()).slice(-2);
+    return mm + "-" + dd + "-" + yy;
+  }
+
+  function formatTimestamp(iso) {
+    var d = new Date(iso);
+    var diffMs = Date.now() - d.getTime();
+    var mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return mins + "m ago";
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + "h ago";
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+      " · " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function downloadBlob(content, filename, type) {
+    var blob = new Blob([content], { type: type });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  function buildArchiveHTML(entries) {
+    var rows = entries.map(function (e) {
+      var f = fontVars(e.valence, e.arousal);
+      return '<div class="entry">' +
+        '<div class="text" style="font-variation-settings:' + f.fontVariationSettings + '; font-size:' + f.fontSize + 'px;">' + escapeHtml(e.text) + '</div>' +
+        '<div class="meta">' + new Date(e.createdAt).toLocaleString() + ' — V ' + e.valence.toFixed(2) + ' / A ' + e.arousal.toFixed(2) + '</div>' +
+        '</div>';
+    }).join("\n");
+    return '<!DOCTYPE html>\n<html><head><meta charset="utf-8"><title>Mood Journal Archive</title>\n' +
+      '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
+      '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
+      '<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wdth,wght@6..144,25..151,1..1000&display=swap" rel="stylesheet">\n' +
+      '<style>\n' +
+      '  body{background:' + COLOR.paper + ';color:' + COLOR.ink + ';font-family:' + SANS + ';max-width:720px;margin:64px auto;padding:0 24px 96px;}\n' +
+      '  h1{font-family:"Google Sans Flex",sans-serif;font-weight:800;font-size:28px;letter-spacing:-0.01em;margin-bottom:4px;}\n' +
+      '  .sub{color:' + COLOR.graphite + ';font-size:12px;margin-bottom:48px;}\n' +
+      '  .entry{padding:28px 0;border-bottom:1px solid ' + COLOR.hairline + ';}\n' +
+      '  .text{font-family:"Google Sans Flex",sans-serif;margin-bottom:10px;}\n' +
+      '  .meta{font-size:11px;color:' + COLOR.graphite + ';letter-spacing:0.03em;}\n' +
+      '</style></head>\n<body>\n' +
+      '  <h1>Mood Journal Archive</h1>\n' +
+      '  <div class="sub">Exported ' + new Date().toLocaleString() + ' · ' + entries.length + ' entries</div>\n' +
+      '  ' + (rows || '<div class="meta">No entries yet.</div>') + '\n' +
+      '</body></html>';
+  }
+
+  /* ---------------------------------------------------------------------
+     STORAGE — IndexedDB, with an in-memory fallback if unavailable
+  --------------------------------------------------------------------- */
+  var store = (function () {
+    if (!window.indexedDB) {
+      var mem = { entries: [], meta: {} };
+      return {
+        listEntries: function () { return Promise.resolve(mem.entries.slice()); },
+        addEntry: function (e) { mem.entries.push(e); return Promise.resolve(); },
+        getMeta: function (k) { return Promise.resolve(mem.meta[k]); },
+        setMeta: function (k, v) { mem.meta[k] = v; return Promise.resolve(); }
+      };
+    }
+
+    var dbPromise = null;
+    function getDB() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise(function (resolve, reject) {
+        var req = indexedDB.open("mood-journal-db", 1);
+        req.onupgradeneeded = function (e) {
+          var db = e.target.result;
+          if (!db.objectStoreNames.contains("entries")) db.createObjectStore("entries", { keyPath: "id" });
+          if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", { keyPath: "key" });
+        };
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error); };
+      });
+      return dbPromise;
+    }
+
+    return {
+      listEntries: function () {
+        return getDB().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var req = db.transaction("entries", "readonly").objectStore("entries").getAll();
+            req.onsuccess = function () { resolve(req.result); };
+            req.onerror = function () { reject(req.error); };
+          });
+        });
+      },
+      addEntry: function (entry) {
+        return getDB().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var tx = db.transaction("entries", "readwrite");
+            tx.objectStore("entries").put(entry);
+            tx.oncomplete = function () { resolve(); };
+            tx.onerror = function () { reject(tx.error); };
+          });
+        });
+      },
+      getMeta: function (key) {
+        return getDB().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var req = db.transaction("meta", "readonly").objectStore("meta").get(key);
+            req.onsuccess = function () { resolve(req.result ? req.result.value : undefined); };
+            req.onerror = function () { reject(req.error); };
+          });
+        });
+      },
+      setMeta: function (key, value) {
+        return getDB().then(function (db) {
+          return new Promise(function (resolve, reject) {
+            var tx = db.transaction("meta", "readwrite");
+            tx.objectStore("meta").put({ key: key, value: value });
+            tx.oncomplete = function () { resolve(); };
+            tx.onerror = function () { reject(tx.error); };
+          });
+        });
+      }
+    };
+  })();
+
+  /* ---------------------------------------------------------------------
+     STATE
+  --------------------------------------------------------------------- */
+  var state = {
+    entries: [],
+    isRecording: false,
+    interim: "",
+    micError: null,
+    viewMode: "vertical",
+    sidebarOpen: true,
+    lastExportedAt: null,
+    nudgeDismissed: false,
+    hydrated: false
+  };
+
+  var speechSupported = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+  var recognition = null;
+
+  /* ---------------------------------------------------------------------
+     DOM refs
+  --------------------------------------------------------------------- */
+  var el = {
+    sidebar: document.getElementById("sidebar"),
+    sidebarToggle: document.getElementById("sidebarToggle"),
+    tabVertical: document.getElementById("tabVertical"),
+    tabTimeline: document.getElementById("tabTimeline"),
+    exportJsonBtn: document.getElementById("exportJsonBtn"),
+    exportHtmlBtn: document.getElementById("exportHtmlBtn"),
+    backupNote: document.getElementById("backupNote"),
+    voiceNote: document.getElementById("voiceNote"),
+    nudge: document.getElementById("nudge"),
+    history: document.getElementById("history"),
+    micBtn: document.getElementById("micBtn"),
+    micIcon: document.getElementById("micIcon"),
+    draftInput: document.getElementById("draftInput"),
+    draftStatus: document.getElementById("draftStatus"),
+    addBtn: document.getElementById("addBtn")
+  };
+
+  var MIC_ICON = el.micIcon.innerHTML;
+  var STOP_ICON = '<rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/>';
+
+  /* ---------------------------------------------------------------------
+     RENDER — sidebar / capture bar are built once; only targeted bits
+     update on state change. History is rebuilt on structural change.
+  --------------------------------------------------------------------- */
+  function renderSidebar() {
+    el.sidebar.classList.toggle("collapsed", !state.sidebarOpen);
+    el.sidebarToggle.setAttribute("aria-label", state.sidebarOpen ? "Hide sidebar" : "Show sidebar");
+    el.sidebarToggle.innerHTML = state.sidebarOpen
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+
+    el.tabVertical.classList.toggle("active", state.viewMode === "vertical");
+    el.tabVertical.setAttribute("aria-pressed", state.viewMode === "vertical");
+    el.tabTimeline.classList.toggle("active", state.viewMode === "timeline");
+    el.tabTimeline.setAttribute("aria-pressed", state.viewMode === "timeline");
+
+    var hasEntries = state.entries.length > 0;
+    el.exportJsonBtn.disabled = !hasEntries;
+    el.exportJsonBtn.classList.toggle("enabled", hasEntries);
+    el.exportHtmlBtn.disabled = !hasEntries;
+    el.exportHtmlBtn.classList.toggle("enabled", hasEntries);
+    el.backupNote.textContent = state.lastExportedAt ? ("Last backup " + formatTimestamp(state.lastExportedAt)) : "No backup yet";
+
+    el.voiceNote.hidden = speechSupported;
+
+    var daysSinceExport = state.lastExportedAt ? (Date.now() - new Date(state.lastExportedAt).getTime()) / 86400000 : Infinity;
+    var showNudge = state.hydrated && hasEntries && daysSinceExport >= 7 && !state.nudgeDismissed;
+    el.nudge.hidden = !showNudge;
+  }
+
+  function renderCaptureBar() {
+    el.micBtn.disabled = !speechSupported;
+    el.micBtn.classList.toggle("recording", state.isRecording);
+    el.micBtn.setAttribute("aria-label", state.isRecording ? "Stop recording" : "Start recording");
+    el.micIcon.innerHTML = state.isRecording ? STOP_ICON : MIC_ICON;
+    el.micIcon.setAttribute("viewBox", "0 0 24 24");
+
+    var draft = el.draftInput.value;
+    var hasDraft = draft.trim().length > 0;
+    el.addBtn.disabled = !hasDraft;
+    el.addBtn.classList.toggle("enabled", hasDraft);
+
+    var statusEl = el.draftStatus;
+    if (state.micError) {
+      statusEl.textContent = state.micError;
+      statusEl.classList.add("error");
+    } else if (state.isRecording) {
+      statusEl.textContent = state.interim || "Listening…";
+      statusEl.classList.remove("error");
+    } else {
+      statusEl.textContent = "";
+      statusEl.classList.remove("error");
+    }
+  }
+
+  function entryCardHTML(entry) {
+    var f = fontVars(entry.valence, entry.arousal);
+    return '<div class="entry">' +
+      '<div class="entry-meta"><span class="entry-date">' + formatDateShort(entry.createdAt) + '</span>' +
+      '<span class="entry-time">' + formatTimestamp(entry.createdAt) + '</span></div>' +
+      '<div class="entry-text" style="font-variation-settings:' + f.fontVariationSettings + '; font-size:' + f.fontSize + 'px; letter-spacing:' + f.letterSpacing + ';">' +
+      escapeHtml(entry.text) + '</div></div>';
+  }
+
+  var EMPTY_STATE_HTML = '<div class="empty-state">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/></svg>' +
+    '<div class="title">No Entries Yet</div>' +
+    '<div class="sub">Speak or type a brief thought to begin.</div></div>';
+
+  function renderHistory() {
+    el.history.classList.toggle("vertical", state.viewMode === "vertical");
+    el.history.classList.toggle("timeline", state.viewMode === "timeline");
+
+    if (state.entries.length === 0) {
+      el.history.innerHTML = EMPTY_STATE_HTML;
+      return;
+    }
+
+    if (state.viewMode === "vertical") {
+      el.history.innerHTML = '<div class="entry-list">' + state.entries.map(entryCardHTML).join("") + '</div>';
+      return;
+    }
+
+    var ordered = state.entries.slice().reverse(); // oldest -> newest, left -> right
+    var trackWidth = ordered.length * SLOT_WIDTH;
+    var items = ordered.map(function (entry, i) {
+      var f = fontVars(entry.valence, entry.arousal);
+      var x = i * SLOT_WIDTH + SLOT_WIDTH / 2;
+      var elevation = Math.round(lerp(10, 220, norm(entry.valence)));
+      var textSize = Math.min(38, f.fontSize);
+      return '<div class="timeline-item" style="left:' + x + 'px;">' +
+        '<div class="timeline-stem" style="height:' + elevation + 'px;"></div>' +
+        '<div class="timeline-dot" style="bottom:' + (elevation - 3) + 'px;"></div>' +
+        '<div class="timeline-text" style="bottom:' + (elevation + 12) + 'px; font-variation-settings:' + f.fontVariationSettings + '; font-size:' + textSize + 'px; letter-spacing:' + f.letterSpacing + ';">' +
+        escapeHtml(entry.text) + '</div>' +
+        '<div class="timeline-time">' + formatTimestamp(entry.createdAt) + '</div></div>';
+    }).join("");
+
+    el.history.innerHTML = '<div class="timeline-scroll"><div class="timeline-track" style="width:' + trackWidth + 'px;">' +
+      '<div class="timeline-spine"></div>' + items + '</div></div>';
+  }
+
+  function render() {
+    renderSidebar();
+    renderCaptureBar();
+    renderHistory();
+  }
+
+  /* ---------------------------------------------------------------------
+     ACTIONS
+  --------------------------------------------------------------------- */
+  function addEntry(text) {
+    var trimmed = text.trim();
+    if (!trimmed) return;
+    var scores = classifyEntry(trimmed);
+    var entry = {
+      id: Date.now() + "-" + Math.random().toString(36).slice(2, 8),
+      text: trimmed,
+      createdAt: new Date().toISOString(),
+      valence: scores.valence,
+      arousal: scores.arousal
+    };
+    state.entries.unshift(entry);
+    store.addEntry(entry);
+    el.draftInput.value = "";
+    state.interim = "";
+    render();
+  }
+
+  function toggleRecording() {
+    if (!speechSupported) return;
+    if (state.isRecording) {
+      recognition && recognition.stop();
+      return;
+    }
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onresult = function (ev) {
+      var text = "";
+      for (var i = 0; i < ev.results.length; i++) text += ev.results[i][0].transcript;
+      state.interim = text;
+      renderCaptureBar();
+    };
+    recognition.onend = function () {
+      state.isRecording = false;
+      var final = state.interim;
+      state.interim = "";
+      if (final && final.trim()) addEntry(final);
+      else render();
+    };
+    recognition.onerror = function (ev) {
+      state.isRecording = false;
+      state.micError = (ev.error === "not-allowed" || ev.error === "service-not-allowed")
+        ? "Mic access blocked in this browser"
+        : "Mic error: " + ev.error;
+      render();
+    };
+    state.micError = null;
+    try {
+      recognition.start();
+      state.isRecording = true;
+      render();
+    } catch (err) {
+      state.micError = "Couldn't start microphone";
+      render();
+    }
+  }
+
+  function markExported() {
+    var now = new Date().toISOString();
+    state.lastExportedAt = now;
+    state.nudgeDismissed = false;
+    store.setMeta("lastExportedAt", now);
+    renderSidebar();
+  }
+
+  function exportJSON() {
+    if (state.entries.length === 0) return;
+    downloadBlob(JSON.stringify(state.entries, null, 2), "mood-journal-" + new Date().toISOString().slice(0, 10) + ".json", "application/json");
+    markExported();
+  }
+
+  function exportHTML() {
+    if (state.entries.length === 0) return;
+    downloadBlob(buildArchiveHTML(state.entries), "mood-journal-" + new Date().toISOString().slice(0, 10) + ".html", "text/html");
+    markExported();
+  }
+
+  /* ---------------------------------------------------------------------
+     EVENTS
+  --------------------------------------------------------------------- */
+  document.addEventListener("click", function (ev) {
+    var target = ev.target.closest("[data-action]");
+    if (!target) return;
+    var action = target.dataset.action;
+    if (action === "toggle-sidebar") {
+      state.sidebarOpen = !state.sidebarOpen;
+      renderSidebar();
+    } else if (action === "set-view") {
+      state.viewMode = target.dataset.view;
+      render();
+    } else if (action === "export-json") {
+      exportJSON();
+    } else if (action === "export-html") {
+      exportHTML();
+    } else if (action === "dismiss-nudge") {
+      state.nudgeDismissed = true;
+      renderSidebar();
+    } else if (action === "toggle-recording") {
+      toggleRecording();
+    } else if (action === "add-entry") {
+      addEntry(el.draftInput.value);
+      renderCaptureBar();
+    }
+  });
+
+  el.draftInput.addEventListener("input", renderCaptureBar);
+  el.draftInput.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      addEntry(el.draftInput.value);
+      renderCaptureBar();
+    }
+  });
+
+  /* ---------------------------------------------------------------------
+     INIT — hydrate from IndexedDB
+  --------------------------------------------------------------------- */
+  Promise.all([store.listEntries(), store.getMeta("lastExportedAt")]).then(function (results) {
+    var entries = results[0] || [];
+    entries.sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+    state.entries = entries;
+    state.lastExportedAt = results[1] || null;
+    state.hydrated = true;
+    render();
+  }).catch(function () {
+    state.hydrated = true;
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
