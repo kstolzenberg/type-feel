@@ -1,11 +1,12 @@
-# type-feel
+# The Shape of Today
 
+## the idea
 what if we could see the shape of our feelings, the ebbs and flows of our moods, more clearly?
 
-building a new type of mood journal. more visual, more scannable for reflecting at a later time. dynamically mapping emotions to variable text using the [circumplex model](https://en.wikipedia.org/wiki/Emotion_classification#Circumplex_model).
+building a new type of mood journal. something more visual, more scannable for easier reflection at a later time. dynamically mapping emotions to variable text to create a richer visual record.  
 
-## the circumplex model
-two axes: positive/negative arousal = "intensity", positive/negative valance = "pleasantness"
+## the science
+[circumplex model](https://en.wikipedia.org/wiki/Emotion_classification#Circumplex_model) considers emotions along two axes: positive/negative arousal = "intensity", positive/negative valance = "pleasantness"
 <img width="600px" height="auto" alt="image" src="https://github.com/user-attachments/assets/8b1e1e59-2bde-4f65-bb0c-423e1673694f" />
 
 ## technical approach
