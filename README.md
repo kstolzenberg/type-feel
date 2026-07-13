@@ -7,6 +7,7 @@ building a new type of mood journal. something more visual, more scannable for e
 
 ## the science
 [circumplex model](https://en.wikipedia.org/wiki/Emotion_classification#Circumplex_model) considers emotions along two axes: positive/negative arousal = "intensity", positive/negative valance = "pleasantness"
+
 <img width="600px" height="auto" alt="image" src="https://github.com/user-attachments/assets/8b1e1e59-2bde-4f65-bb0c-423e1673694f"/>
 
 ## technical approach
