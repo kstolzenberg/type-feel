@@ -437,7 +437,7 @@
     // as "bigger and bolder" vs. "smaller and quieter", as specced.
     var fontSize = Math.round(lerp(16, 48, norm(valence)));
     return {
-      fontVariationSettings: '"wght" ' + wght + ', "wdth" ' + wdth + ', "opsz" ' + opsz,
+      fontVariationSettings: "'wght' " + wght + ", 'wdth' " + wdth + ", 'opsz' " + opsz,
       fontSize: fontSize,
       letterSpacing: arousal > 0.15 ? "-0.01em" : "0em"
     };
