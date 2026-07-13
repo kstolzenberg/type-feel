@@ -22,3 +22,7 @@ two axes: positive/negative arousal = "intensity", positive/negative valance = "
 
 ## outcome
 <img width="2062" height="1280" alt="Screenshot 2026-07-10 at 4 46 11 PM" src="https://github.com/user-attachments/assets/b9c60c8e-b19e-4095-a9fe-8ee140e619d6" />
+
+## future steps
+- upgrade classifier to an LLM API for wider coverage, greater nuance
+- add option for more visual expression, dynamic colors, dyanamic shader backgrounds based on emotional axes as well
