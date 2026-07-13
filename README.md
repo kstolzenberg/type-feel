@@ -3,7 +3,7 @@
 ## the idea
 what if we could see the shape of our feelings, the ebbs and flows of our moods, more clearly?
 
-building a new type of mood journal. something more visual, more scannable for easier reflection at a later time. dynamically mapping emotions to variable text to create a richer visual record.  
+building a new type of mood journal. something more visual, more scannable for easier reflection at a later time. dynamically mapping emotions to variable fonts to create a richer visual record.  
 
 ## the science
 [circumplex model](https://en.wikipedia.org/wiki/Emotion_classification#Circumplex_model) considers emotions along two axes: positive/negative arousal = "intensity", positive/negative valance = "pleasantness"
