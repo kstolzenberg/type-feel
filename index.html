@@ -651,8 +651,11 @@
 
     el.voiceNote.hidden = speechSupported;
 
-    var daysSinceExport = state.lastExportedAt ? (Date.now() - new Date(state.lastExportedAt).getTime()) / 86400000 : Infinity;
-    var showNudge = state.hydrated && hasEntries && daysSinceExport >= 7 && !state.nudgeDismissed;
+    // Never-exported journals count from the oldest entry, not from "forever
+    // ago" — otherwise the nudge would appear on day one instead of day seven.
+    var nudgeSince = state.lastExportedAt || (hasEntries ? state.entries[state.entries.length - 1].createdAt : null);
+    var daysSinceNudgeReference = nudgeSince ? (Date.now() - new Date(nudgeSince).getTime()) / 86400000 : -Infinity;
+    var showNudge = state.hydrated && hasEntries && daysSinceNudgeReference >= 7 && !state.nudgeDismissed;
     el.nudge.hidden = !showNudge;
   }
 
