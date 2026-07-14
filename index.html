@@ -755,6 +755,8 @@
     render();
   }
 
+  var MIC_AND_SPEECH_BLOCKED_MSG = "Mic or speech recognition blocked — check both permissions for this site in your browser/system settings, then reload.";
+
   function toggleRecording() {
     if (!speechSupported) return;
     if (state.isRecording) {
@@ -762,20 +764,20 @@
       return;
     }
     state.micError = null;
-    // Mobile Chrome ties mic access to getUserMedia rather than reliably
-    // prompting from SpeechRecognition.start() alone, so prime the native
-    // permission dialog explicitly before starting recognition.
+    // Mic access (getUserMedia) and Speech Recognition access are two
+    // separate permissions on iOS/mobile browsers. Both prompts only appear
+    // reliably if requested synchronously within this click's user-activation
+    // window — awaiting getUserMedia before calling recognition.start() lets
+    // that window expire, which is why only the mic prompt ever fired.
+    // So fire both directly here instead of chaining one after the other.
     if (isMobileDevice() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
         stream.getTracks().forEach(function (track) { track.stop(); });
-        startSpeechRecognition();
-      }).catch(function (err) {
-        state.micError = (err.name === "NotAllowedError" || err.name === "SecurityError")
-          ? "Mic blocked — enable microphone access for this site in your browser settings, then reload."
-          : "Couldn't access microphone";
-        render();
+      }).catch(function () {
+        // Surfaced generically via recognition.onerror below, since a mic
+        // rejection here almost always means recognition.start() will also
+        // fail — no need to report it twice.
       });
-      return;
     }
     startSpeechRecognition();
   }
@@ -802,7 +804,7 @@
     recognition.onerror = function (ev) {
       state.isRecording = false;
       state.micError = (ev.error === "not-allowed" || ev.error === "service-not-allowed")
-        ? "Mic blocked — enable microphone access for this site in your browser settings, then reload."
+        ? MIC_AND_SPEECH_BLOCKED_MSG
         : "Mic error: " + ev.error;
       render();
     };
@@ -811,7 +813,7 @@
       state.isRecording = true;
       render();
     } catch (err) {
-      state.micError = "Couldn't start microphone";
+      state.micError = "Couldn't start voice input — try again.";
       render();
     }
   }
