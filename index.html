@@ -842,6 +842,15 @@
      EVENTS
   --------------------------------------------------------------------- */
   document.addEventListener("click", function (ev) {
+    // Mobile drawer convention: tapping anywhere outside the open sidebar
+    // (other than its own toggle, which already handles itself below)
+    // closes it, in addition to the toggle arrow.
+    if (isMobileDevice() && state.sidebarOpen &&
+        !el.sidebar.contains(ev.target) && !el.sidebarToggle.contains(ev.target)) {
+      state.sidebarOpen = false;
+      renderSidebar();
+    }
+
     var target = ev.target.closest("[data-action]");
     if (!target) return;
     var action = target.dataset.action;
