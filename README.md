@@ -1,4 +1,5 @@
 # The Shape of Today
+[try it here](https://kstolzenberg.github.io/type-feel/)
 
 ## the idea
 what if we could see the shape of our feelings, the ebbs and flows of our moods, more clearly?
