@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>The Shape of Today — A Visual Mood Journal</title>
+<title>Type Feel</title>
 <meta name="description" content="A voice-first mood journal that renders each entry typographically, mapping valence and arousal to a variable font.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23D5001C'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -151,7 +151,7 @@
   }
 
   .sidebar-toggle {
-    position: absolute; top: 20px; left: 20px; z-index: 5;
+    position: absolute; top: 20px; left: 20px; z-index: 25;
     width: 32px; height: 32px; border-radius: 50%;
     border: 1px solid var(--hairline); background: var(--paper);
     display: flex; align-items: center; justify-content: center;
@@ -264,7 +264,7 @@
   .add-btn.enabled { color: var(--ink); cursor: pointer; }
 
   @media (max-width: 768px) {
-    .sidebar { position: absolute; z-index: 20; height: 100%; background: var(--paper); }
+    .sidebar { position: absolute; z-index: 20; height: 100%; background: var(--paper); padding-top: 76px; }
     .sidebar.collapsed { border-right: none; }
     .capture-bar { width: 92vw; min-width: 0; }
     .history.vertical { padding: 72px 20px 160px; }
@@ -582,13 +582,18 @@
   /* ---------------------------------------------------------------------
      STATE
   --------------------------------------------------------------------- */
+  function isMobileDevice() {
+    return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+      (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+  }
+
   var state = {
     entries: [],
     isRecording: false,
     interim: "",
     micError: null,
     viewMode: "vertical",
-    sidebarOpen: true,
+    sidebarOpen: !isMobileDevice(),
     lastExportedAt: null,
     nudgeDismissed: false,
     hydrated: false
@@ -646,8 +651,11 @@
 
     el.voiceNote.hidden = speechSupported;
 
-    var daysSinceExport = state.lastExportedAt ? (Date.now() - new Date(state.lastExportedAt).getTime()) / 86400000 : Infinity;
-    var showNudge = state.hydrated && hasEntries && daysSinceExport >= 7 && !state.nudgeDismissed;
+    // Never-exported journals count from the oldest entry, not from "forever
+    // ago" — otherwise the nudge would appear on day one instead of day seven.
+    var nudgeSince = state.lastExportedAt || (hasEntries ? state.entries[state.entries.length - 1].createdAt : null);
+    var daysSinceNudgeReference = nudgeSince ? (Date.now() - new Date(nudgeSince).getTime()) / 86400000 : -Infinity;
+    var showNudge = state.hydrated && hasEntries && daysSinceNudgeReference >= 7 && !state.nudgeDismissed;
     el.nudge.hidden = !showNudge;
   }
 
@@ -750,12 +758,34 @@
     render();
   }
 
+  var MIC_AND_SPEECH_BLOCKED_MSG = "Mic or speech recognition blocked — check both permissions for this site in your browser/system settings, then reload.";
+
   function toggleRecording() {
     if (!speechSupported) return;
     if (state.isRecording) {
       recognition && recognition.stop();
       return;
     }
+    state.micError = null;
+    // Mic access (getUserMedia) and Speech Recognition access are two
+    // separate permissions on iOS/mobile browsers. Both prompts only appear
+    // reliably if requested synchronously within this click's user-activation
+    // window — awaiting getUserMedia before calling recognition.start() lets
+    // that window expire, which is why only the mic prompt ever fired.
+    // So fire both directly here instead of chaining one after the other.
+    if (isMobileDevice() && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        stream.getTracks().forEach(function (track) { track.stop(); });
+      }).catch(function () {
+        // Surfaced generically via recognition.onerror below, since a mic
+        // rejection here almost always means recognition.start() will also
+        // fail — no need to report it twice.
+      });
+    }
+    startSpeechRecognition();
+  }
+
+  function startSpeechRecognition() {
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SR();
     recognition.continuous = false;
@@ -777,17 +807,16 @@
     recognition.onerror = function (ev) {
       state.isRecording = false;
       state.micError = (ev.error === "not-allowed" || ev.error === "service-not-allowed")
-        ? "Mic access blocked in this browser"
+        ? MIC_AND_SPEECH_BLOCKED_MSG
         : "Mic error: " + ev.error;
       render();
     };
-    state.micError = null;
     try {
       recognition.start();
       state.isRecording = true;
       render();
     } catch (err) {
-      state.micError = "Couldn't start microphone";
+      state.micError = "Couldn't start voice input — try again.";
       render();
     }
   }
@@ -816,6 +845,15 @@
      EVENTS
   --------------------------------------------------------------------- */
   document.addEventListener("click", function (ev) {
+    // Mobile drawer convention: tapping anywhere outside the open sidebar
+    // (other than its own toggle, which already handles itself below)
+    // closes it, in addition to the toggle arrow.
+    if (isMobileDevice() && state.sidebarOpen &&
+        !el.sidebar.contains(ev.target) && !el.sidebarToggle.contains(ev.target)) {
+      state.sidebarOpen = false;
+      renderSidebar();
+    }
+
     var target = ev.target.closest("[data-action]");
     if (!target) return;
     var action = target.dataset.action;
