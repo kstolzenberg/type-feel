@@ -1,4 +1,4 @@
-# The Shape of Today
+# Type Feel
 [try it here](https://kstolzenberg.github.io/type-feel/)
 
 ## the idea
